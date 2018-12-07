@@ -29,20 +29,20 @@ import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.parsing.KotlinParserDefinition
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.script.KotlinScriptDefinition
+import org.jetbrains.kotlin.psi.KtScript
 import org.jetbrains.kotlin.script.util.KotlinJars
+import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.File
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.dependencies.DependenciesResolver
 import kotlin.script.experimental.host.ScriptingHostConfiguration
 import kotlin.script.experimental.host.getMergedScriptText
-import kotlin.script.experimental.host.getScriptingClass
 import kotlin.script.experimental.jvm.JvmDependency
 import kotlin.script.experimental.jvm.impl.BridgeDependenciesResolver
 import kotlin.script.experimental.jvm.jdkHome
 import kotlin.script.experimental.jvm.jvm
 import kotlin.script.experimental.jvmhost.KJvmCompilerProxy
-import kotlin.script.experimental.util.getOrError
+import kotlin.script.experimental.jvmhost.compat.KotlinScriptDefinitionAdapterFromNewAPIBase
 
 class KJvmCompilerImpl(val hostConfiguration: ScriptingHostConfiguration) : KJvmCompilerProxy {
 
@@ -131,9 +131,14 @@ class KJvmCompilerImpl(val hostConfiguration: ScriptingHostConfiguration) : KJvm
             val psiFile: KtFile = psiFileFactory.trySetupPsiForFile(virtualFile, KotlinLanguage.INSTANCE, true, false) as KtFile?
                 ?: return failure("Unable to make PSI file from script".asErrorDiagnostics())
 
-            val sourceFiles = arrayListOf(psiFile).also {
-                it.addAll(collectRequiredSourcesFromDependencies(kotlinCompilerConfiguration, environment.project, it))
-            }
+            val ktScript = psiFile.declarations.firstIsInstanceOrNull<KtScript>()
+                ?: return failure("Not a script file".asErrorDiagnostics())
+
+            val sourceFiles = arrayListOf(psiFile)
+            val (classpath, newSources, sourceDependencies) =
+                collectScriptsCompilationDependencies(kotlinCompilerConfiguration, environment.project, sourceFiles)
+            kotlinCompilerConfiguration.addJvmClasspathRoots(classpath)
+            sourceFiles.addAll(newSources)
 
             analyzerWithCompilerReport.analyzeAndReport(sourceFiles) {
                 val project = environment.project
@@ -160,7 +165,16 @@ class KJvmCompilerImpl(val hostConfiguration: ScriptingHostConfiguration) : KJvm
             ).build()
             KotlinCodegenFacade.compileCorrectFiles(generationState, CompilationErrorHandler.THROW_EXCEPTION)
 
-            val res = KJvmCompiledScript<Any>(updatedConfiguration, generationState, scriptFileName.capitalize())
+            fun makeCompiledScript(script: KtScript): KJvmCompiledScript<*> {
+
+                val importedScripts = sourceDependencies.find { it.script == script }?.sourceDependencies?.mapNotNull { sourceFile ->
+                    sourceFile.declarations.firstIsInstanceOrNull<KtScript>()?.let { makeCompiledScript(it) }
+                } ?: emptyList()
+
+                return KJvmCompiledScript<Any>(updatedConfiguration, generationState, script.fqName.asString(), importedScripts)
+            }
+
+            val res = makeCompiledScript(ktScript)
 
             return ResultWithDiagnostics.Success(res, messageCollector.diagnostics)
         } catch (ex: Throwable) {
@@ -205,15 +219,11 @@ internal class ScriptDiagnosticsMessageCollector : MessageCollector {
 // A bridge to the current scripting
 
 internal class BridgeScriptDefinition(
-    scriptCompilationConfiguration: ScriptCompilationConfiguration,
-    hostConfiguration: ScriptingHostConfiguration,
+    override val scriptCompilationConfiguration: ScriptCompilationConfiguration,
+    override val hostConfiguration: ScriptingHostConfiguration,
     updateClasspath: (List<File>) -> Unit
-) : KotlinScriptDefinition(
-    hostConfiguration.getScriptingClass(
-        scriptCompilationConfiguration.getOrError(ScriptCompilationConfiguration.baseClass),
-        BridgeScriptDefinition::class
-    )
-) {
+) : KotlinScriptDefinitionAdapterFromNewAPIBase() {
+
     override val acceptedAnnotations = run {
         val cl = this::class.java.classLoader
         scriptCompilationConfiguration[ScriptCompilationConfiguration.refineConfigurationOnAnnotations]?.annotations
