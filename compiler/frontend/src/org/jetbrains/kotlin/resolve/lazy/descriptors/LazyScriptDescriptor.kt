@@ -152,7 +152,7 @@ class LazyScriptDescriptor(
     private inner class ImportedScriptDescriptorsFinder {
 
         val fileManager = VirtualFileManager.getInstance()
-        val localFS = fileManager.getFileSystem(StandardFileSystems.FILE_PROTOCOL) as CoreLocalFileSystem
+        val localFS = fileManager.getFileSystem(StandardFileSystems.FILE_PROTOCOL)
         val psiManager = PsiManager.getInstance(scriptInfo.script.project)
 
         operator fun invoke(importedScriptFile: File): ScriptDescriptor? {
@@ -162,7 +162,7 @@ class LazyScriptDescriptor(
                 return null
             }
 
-            val vfile = localFS.findFileByIoFile(importedScriptFile)
+            val vfile = localFS.findFileByPath(importedScriptFile.path)
                 ?: return errorDescriptor(MISSING_IMPORTED_SCRIPT_FILE)
             val psiFile = psiManager.findFile(vfile)
                 ?: return errorDescriptor(MISSING_IMPORTED_SCRIPT_PSI)
