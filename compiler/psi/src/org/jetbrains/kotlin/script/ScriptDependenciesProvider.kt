@@ -24,7 +24,11 @@ import kotlin.script.experimental.dependencies.ScriptDependencies
 
 interface ScriptDependenciesProvider {
     fun getScriptDependencies(file: VirtualFile): ScriptDependencies?
-    fun getScriptDependencies(file: PsiFile) = getScriptDependencies(file.virtualFile)
+    fun getScriptDependencies(file: PsiFile) =
+        // TODO: implement proper support for in-memory-only psi files
+        file.virtualFile?.let {
+            getScriptDependencies(it)
+        }
 
     companion object {
         fun getInstance(project: Project): ScriptDependenciesProvider =

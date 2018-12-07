@@ -20,6 +20,7 @@ import kotlin.script.experimental.host.configurationDependencies
 import kotlin.script.experimental.host.createCompilationConfigurationFromTemplate
 import kotlin.script.experimental.jvm.JvmDependency
 import kotlin.script.experimental.jvm.defaultJvmScriptingHostConfiguration
+import kotlin.script.experimental.jvmhost.compat.KotlinScriptDefinitionAdapterFromNewAPIBase
 
 class LazyScriptDefinitionFromDiscoveredClass internal constructor(
     private val annotationsFromAsm: ArrayList<BinAnnData>,

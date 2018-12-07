@@ -12,8 +12,10 @@ dependencies {
     compile(project(":kotlin-scripting-common"))
     compile(project(":kotlin-scripting-jvm"))
     compile(project(":kotlin-script-util"))
+    compileOnly(project(":kotlin-reflect-api"))
     compileOnly(project(":compiler:cli"))
     compileOnly(intellijCoreDep())
+    runtime(project(":kotlin-reflect"))
     runtime(projectRuntimeJar(":kotlin-compiler"))
     testCompile(projectTests(":compiler:tests-common"))
     testCompile(commonDep("junit"))
@@ -25,6 +27,10 @@ sourceSets {
 }
 
 standardPublicJars()
+
+dist()
+
+ideaPlugin()
 
 publish()
 
