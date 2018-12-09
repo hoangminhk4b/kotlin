@@ -234,6 +234,6 @@ interface CompiledScript<out ScriptBase : Any> {
      */
     suspend fun getClass(scriptEvaluationConfiguration: ScriptEvaluationConfiguration?): ResultWithDiagnostics<KClass<*>>
 
-    val importedScripts: List<CompiledScript<*>>?
+    val otherScripts: List<CompiledScript<*>>?
         get() = null
 }
