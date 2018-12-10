@@ -249,3 +249,5 @@ messages/**)
 -keep class org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt { *; }
 
 -keep class net.jpountz.lz4.* { *; }
+
+-keep class org.jetbrains.kotlin.utils.addToStdlib.AddToStdlibKt { *; }
