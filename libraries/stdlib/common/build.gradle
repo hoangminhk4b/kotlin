@@ -104,6 +104,7 @@ artifacts {
     archives sourcesJar
     sources sourcesJar
     archives javadocJar
+    runtime sourcesJar
 }
 
 // TODO: call the "dist" task instead, once we need to publish kotlin-stdlib-common.jar with the compiler distribution

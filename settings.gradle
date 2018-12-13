@@ -197,7 +197,6 @@ include ":kotlin-build-common",
         ":libraries:kotlin-prepush-hook",
         ":libraries:tools:mutability-annotations-compat",
         ":include:kotlin-compiler",
-        ":include:kotlin-composite-stdlib",
 
         // plugin markers:
         ':kotlin-gradle-plugin:plugin-marker',
